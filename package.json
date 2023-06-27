@@ -6,5 +6,18 @@
     "eslint-plugin-import": "^2.25.2",
     "eslint-plugin-prettier": "^4.2.1",
     "prettier": "^2.8.8"
-  }
+  },
+  "scripts": {
+    "start": "nodemon index",
+    "build-project": "node build-project.js"
+  },
+  "dependencies": {
+    "nodemon": "^2.0.22"
+  },
+  "name": "Uptix_API-RAW-NODE",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/Faisal-8898/Uptix_API-RAW-NODE.git",
+  "author": "Faisal Ahmed <faisalahmed8988@gmail.com>",
+  "license": "MIT"
 }

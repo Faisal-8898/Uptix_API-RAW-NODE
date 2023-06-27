@@ -8,6 +8,7 @@
       "node": true
     },
     "rules": {
+      "no-unused-vars": ["", { "vars": "all", "args": "after-used", "ignoreRestSiblings": false }],
       "no-console": 0,
       "indent": 0,
       "linebreak-style": 0,
