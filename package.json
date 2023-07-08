@@ -8,7 +8,8 @@
     "prettier": "^2.8.8"
   },
   "scripts": {
-    "start": "nodemon index",
+    "start": "NODE_ENV=staging nodemon index",
+    "production": "NODE_ENV=production nodemon index",
     "build-project": "node build-project.js"
   },
   "dependencies": {
