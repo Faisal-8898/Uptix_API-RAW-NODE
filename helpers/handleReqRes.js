@@ -11,6 +11,7 @@ const url = require('url');
 const { StringDecoder } = require('string_decoder');
 const routes = require('../routes');
 const { notFoundHandler } = require('../handlers/routeHandler/notFoundHandler');
+const { parseJson } = require('./utilities');
 
 // module scaffolding
 const handler = {};
@@ -46,6 +47,7 @@ handler.handleReqRes = (req, res) => {
 
         req.on('end', () => {
             realData += decoder.end();
+            requestProperties.body = parseJson(realData);
             choosenHandler(requestProperties, (statusCode, payload) => {
                 let statusCode1 = statusCode;
                 let payload1 = payload;
@@ -53,7 +55,7 @@ handler.handleReqRes = (req, res) => {
                 payload1 = typeof payload === 'object' ? payload : {};
 
                 const payloadString = JSON.stringify(payload);
-
+                res.setHeader('Content-Type', 'application/json');
                 res.writeHead(statusCode);
                 res.end(payloadString);
             });
