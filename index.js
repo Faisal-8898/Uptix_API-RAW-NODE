@@ -15,7 +15,7 @@ const data = require('./lib/data');
 // app object - module scaffolding
 const app = {};
 
-// data.create('test', 'newFile', { name: 'Bangladesh', hello: 'hi' }, (err) => {
+// data.delete('test', 'newFile', (err) => {
 //     console.log(err);
 // });
 
@@ -26,6 +26,7 @@ app.createServer = () => {
         console.log(`hello i am server listening at ${environment.port}`);
     });
 };
+
 
 // handle req res
 app.handleReqRes = handleReqRes;
