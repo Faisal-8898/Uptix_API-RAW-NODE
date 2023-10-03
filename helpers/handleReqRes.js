@@ -49,18 +49,14 @@ handler.handleReqRes = (req, res) => {
             realData += decoder.end();
             requestProperties.body = parseJson(realData);
             choosenHandler(requestProperties, (statusCode, payload) => {
-                let statusCode1 = statusCode;
-                let payload1 = payload;
-                statusCode1 = typeof statusCode === 'number' ? statusCode : 500;
-                payload1 = typeof payload === 'object' ? payload : {};
+                const statusCode1 = typeof statusCode === 'number' ? statusCode : 500;
+                const payload1 = typeof payload === 'object' ? payload : {};
 
-                const payloadString = JSON.stringify(payload);
+                const payloadString = JSON.stringify(payload1);
                 res.setHeader('Content-Type', 'application/json');
-                res.writeHead(statusCode);
+                res.writeHead(statusCode1);
                 res.end(payloadString);
             });
-
-            res.end('hello i am res');
         });
     } catch (error) {
         console.error(error);
