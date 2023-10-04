@@ -83,8 +83,7 @@ handler._users.post = (requestProperties, callback) => {
 };
 
 handler._users.get = (requestProperties, callback) => {
-    const phone = typeof requestProperties.queryStringObj.phone === 'string';
-    requestProperties.queryStringObj.phone.trim().length === 11
+    const phone = typeof requestProperties.queryStringObj.phone === 'string' && requestProperties.queryStringObj.phone.trim().length === 11
         ? requestProperties.queryStringObj.phone
         : false;
 
@@ -132,8 +131,8 @@ handler._users.put = (requestProperties, callback) => {
     if (phone) {
         if (firstName || lastName || password) {
             data.read('users', phone, (err, uData) => {
-                const userData = { ...uData };
-
+                const userData = { ...parseJson(uData)};
+                console.log(userData);
                 if (!err && userData) {
                     if (firstName) {
                         userData.firstName = firstName;
@@ -177,6 +176,39 @@ handler._users.put = (requestProperties, callback) => {
     }
 };
 
-handler._users.delete = (requestProperties, callback) => {};
+handler._users.delete = (requestProperties, callback) => {
+    const phone = typeof requestProperties.queryStringObj.phone === 'string' && requestProperties.queryStringObj.phone.trim().length === 11
+        ? requestProperties.queryStringObj.phone
+        : false;
+
+    if (phone) {
+        // look for user
+        data.read('users', phone, (err, hellouser) => {
+            const user = { ...parseJson(hellouser) };
+
+            if (!err && user) {
+                data.delete('users', phone, (err2) => {
+                    if (err2) {
+                        callback(500, {
+                            error: 'server side problem',
+                        });
+                    } else {
+                        callback(200, {
+                            error: 'Deleted succesfully',
+                        });
+                    }
+                });
+            } else {
+                callback(404, {
+                    error: 'user not found!',
+                });
+            }
+        });
+    } else {
+        callback(404, {
+            error: 'user not found!',
+        });
+    }
+};
 
 module.exports = handler;
