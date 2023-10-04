@@ -28,20 +28,22 @@ handler.userHandler = (requestProperties, callback) => {
 handler._users.post = (requestProperties, callback) => {
     const { body } = requestProperties;
 
-    const firstName =        typeof body.firstName === 'string' && body.firstName.trim().length > 0
+    const firstName =
+        typeof body.firstName === 'string' && body.firstName.trim().length > 0
             ? body.firstName
             : false;
 
-    const lastName =        typeof body.lastName === 'string' && body.lastName.trim().length > 0
+    const lastName =
+        typeof body.lastName === 'string' && body.lastName.trim().length > 0
             ? body.lastName
             : false;
 
-    const password =        typeof body.password === 'string' && body.password.trim().length > 0
+    const password =
+        typeof body.password === 'string' && body.password.trim().length > 0
             ? body.password
             : false;
 
-    const phone =
-        typeof body.phone === 'string' && body.phone.trim().length === 11 ? body.phone : false;
+    const phone =        typeof body.phone === 'string' && body.phone.trim().length === 11 ? body.phone : false;
 
     const tosAgreement = typeof body.tosAgreement === 'boolean' ? body.tosAgreement : false;
 
@@ -81,8 +83,10 @@ handler._users.post = (requestProperties, callback) => {
 };
 
 handler._users.get = (requestProperties, callback) => {
-    const phone = typeof requestProperties.queryStringObj.phone === 'string' && 
-    requestProperties.queryStringObj.phone.trim().length === 11 ? requestProperties.queryStringObj.phone : false;
+    const phone = typeof requestProperties.queryStringObj.phone === 'string';
+    requestProperties.queryStringObj.phone.trim().length === 11
+        ? requestProperties.queryStringObj.phone
+        : false;
 
     if (phone) {
         // look for user
@@ -105,7 +109,73 @@ handler._users.get = (requestProperties, callback) => {
     }
 };
 
-handler._users.put = (requestProperties, callback) => {};
+handler._users.put = (requestProperties, callback) => {
+    const { body } = requestProperties;
+
+    const firstName =
+        typeof body.firstName === 'string' && body.firstName.trim().length > 0
+            ? body.firstName
+            : false;
+
+    const lastName =
+        typeof body.lastName === 'string' && body.lastName.trim().length > 0
+            ? body.lastName
+            : false;
+
+    const password =
+        typeof body.password === 'string' && body.password.trim().length > 0
+            ? body.password
+            : false;
+
+    const phone =        typeof body.phone === 'string' && body.phone.trim().length === 11 ? body.phone : false;
+
+    if (phone) {
+        if (firstName || lastName || password) {
+            data.read('users', phone, (err, uData) => {
+                const userData = { ...uData };
+
+                if (!err && userData) {
+                    if (firstName) {
+                        userData.firstName = firstName;
+                    }
+
+                    if (lastName) {
+                        userData.lastName = lastName;
+                    }
+
+                    if (password) {
+                        userData.password = hash(password);
+                    }
+
+                    data.update('users', phone, userData, (err1) => {
+                        if(!err1){
+                            callback(200, {
+                                message: 'update done!',
+                            });
+                        }
+                        else{
+                        callback(500, {
+                            error: 'There is a problem in server side',
+                        });
+                    }
+                    } )
+                } else {
+                    callback(400, {
+                        error: 'Invalid request, Please try again!',
+                    });
+                }
+            });
+        } else {
+            callback(400, {
+                error: 'Invalid request, Please try again!',
+            });
+        }
+    } else {
+        callback(400, {
+            error: 'Invalid phone number, Please try again!',
+        });
+    }
+};
 
 handler._users.delete = (requestProperties, callback) => {};
 
