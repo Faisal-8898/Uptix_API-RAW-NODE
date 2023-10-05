@@ -10,6 +10,7 @@
 // dependencies
 const data = require('../../lib/data');
 const { hash, parseJson } = require('../../helpers/utilities');
+
 // MODULE SCAFFOLDING
 const handler = {};
 

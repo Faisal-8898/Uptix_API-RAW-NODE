@@ -30,4 +30,16 @@ utilities.hash = (str) => {
     return false;
 };
 
+utilities.createRandomString = (strlen) => {
+    const length = strlen;
+    const possibleChar = 'qwertyuiopoasdfhlkhjsdgdfzxcvbnm12334534565677890';
+    let output = '';
+    for (let i = 1; i <= length; i += 1) {
+        const randomChar = possibleChar.charAt(Math.floor(Math.random() * possibleChar.length));
+        output += randomChar;
+    }
+
+    return output;
+};
+
 module.exports = utilities;
