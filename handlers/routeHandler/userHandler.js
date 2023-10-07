@@ -10,41 +10,40 @@
 // dependencies
 const data = require('../../lib/data');
 const { hash, parseJson } = require('../../helpers/utilities');
+const tokenHandler = require('./tokenHandler');
 
 // MODULE SCAFFOLDING
 const handler = {};
 
 // New scaffolding for users
-handler._users = {};
+handler.check = {};
 
 handler.userHandler = (requestProperties, callback) => {
     const acceptedMethod = ['get', 'put', 'post', 'delete'];
     if (acceptedMethod.includes(requestProperties.method)) {
-        handler._users[requestProperties.method](requestProperties, callback);
+        handler.check[requestProperties.method](requestProperties, callback);
     } else {
         callback(405);
     }
 };
 
-handler._users.post = (requestProperties, callback) => {
+handler.check.post = (requestProperties, callback) => {
     const { body } = requestProperties;
 
-    const firstName =
-        typeof body.firstName === 'string' && body.firstName.trim().length > 0
+    const firstName =        typeof body.firstName === 'string' && body.firstName.trim().length > 0
             ? body.firstName
             : false;
 
-    const lastName =
-        typeof body.lastName === 'string' && body.lastName.trim().length > 0
+    const lastName =        typeof body.lastName === 'string' && body.lastName.trim().length > 0
             ? body.lastName
             : false;
 
-    const password =
-        typeof body.password === 'string' && body.password.trim().length > 0
+    const password =        typeof body.password === 'string' && body.password.trim().length > 0
             ? body.password
             : false;
 
-    const phone =        typeof body.phone === 'string' && body.phone.trim().length === 11 ? body.phone : false;
+    const phone =
+        typeof body.phone === 'string' && body.phone.trim().length === 11 ? body.phone : false;
 
     const tosAgreement = typeof body.tosAgreement === 'boolean' ? body.tosAgreement : false;
 
@@ -72,7 +71,7 @@ handler._users.post = (requestProperties, callback) => {
                 });
             } else {
                 callback(500, {
-                    error: 'there was a problem in server site',
+                    error: 'Already have that user!',
                 });
             }
         });
@@ -83,22 +82,32 @@ handler._users.post = (requestProperties, callback) => {
     }
 };
 
-handler._users.get = (requestProperties, callback) => {
-    const phone = typeof requestProperties.queryStringObj.phone === 'string' && requestProperties.queryStringObj.phone.trim().length === 11
-        ? requestProperties.queryStringObj.phone
-        : false;
+handler.check.get = (requestProperties, callback) => {
+    const qurObj = requestProperties.queryStringObj;
+    const { headers } = requestProperties;
+    const phone =
+        typeof qurObj.phone === 'string' && qurObj.phone.trim().length === 11
+            ? qurObj.phone
+            : false;
 
     if (phone) {
-        // look for user
-        data.read('users', phone, (err, hellouser) => {
-            const user = { ...parseJson(hellouser) };
+        tokenHandler.token.verify(headers.token, phone, (tokenId) => {
+            if (tokenId) {
+                data.read('users', phone, (err, hellouser) => {
+                    const user = { ...parseJson(hellouser) };
 
-            if (!err && user) {
-                delete user.password;
-                callback(200, user);
+                    if (!err && user) {
+                        delete user.password;
+                        callback(200, user);
+                    } else {
+                        callback(404, {
+                            error: 'user not found!',
+                        });
+                    }
+                });
             } else {
-                callback(404, {
-                    error: 'user not found!',
+                callback(405, {
+                    error: 'Authentication failed',
                 });
             }
         });
@@ -109,59 +118,65 @@ handler._users.get = (requestProperties, callback) => {
     }
 };
 
-handler._users.put = (requestProperties, callback) => {
+handler.check.put = (requestProperties, callback) => {
     const { body } = requestProperties;
+    const { headers } = requestProperties;
 
-    const firstName =
-        typeof body.firstName === 'string' && body.firstName.trim().length > 0
+    const firstName =        typeof body.firstName === 'string' && body.firstName.trim().length > 0
             ? body.firstName
             : false;
 
-    const lastName =
-        typeof body.lastName === 'string' && body.lastName.trim().length > 0
+    const lastName =        typeof body.lastName === 'string' && body.lastName.trim().length > 0
             ? body.lastName
             : false;
 
-    const password =
-        typeof body.password === 'string' && body.password.trim().length > 0
+    const password =        typeof body.password === 'string' && body.password.trim().length > 0
             ? body.password
             : false;
 
-    const phone =        typeof body.phone === 'string' && body.phone.trim().length === 11 ? body.phone : false;
+    const phone =
+        typeof body.phone === 'string' && body.phone.trim().length === 11 ? body.phone : false;
 
     if (phone) {
         if (firstName || lastName || password) {
-            data.read('users', phone, (err, uData) => {
-                const userData = { ...parseJson(uData)};
-                console.log(userData);
-                if (!err && userData) {
-                    if (firstName) {
-                        userData.firstName = firstName;
-                    }
+            tokenHandler.token.verify(headers.token, phone, (tokenId) => {
+                if (tokenId) {
+                    data.read('users', phone, (err, uData) => {
+                        const userData = { ...parseJson(uData) };
 
-                    if (lastName) {
-                        userData.lastName = lastName;
-                    }
+                        if (!err && userData) {
+                            if (firstName) {
+                                userData.firstName = firstName;
+                            }
 
-                    if (password) {
-                        userData.password = hash(password);
-                    }
+                            if (lastName) {
+                                userData.lastName = lastName;
+                            }
 
-                    data.update('users', phone, userData, (err1) => {
-                        if(!err1){
-                            callback(200, {
-                                message: 'update done!',
+                            if (password) {
+                                userData.password = hash(password);
+                            }
+
+                            data.update('users', phone, userData, (err1) => {
+                                if (!err1) {
+                                    callback(200, {
+                                        message: 'update done!',
+                                    });
+                                } else {
+                                    callback(500, {
+                                        error: 'There is a problem in server side',
+                                    });
+                                }
+                            });
+                        } else {
+                            callback(400, {
+                                error: 'Invalid request, Please try again!',
                             });
                         }
-                        else{
-                        callback(500, {
-                            error: 'There is a problem in server side',
-                        });
-                    }
-                    } )
+                    });
                 } else {
-                    callback(400, {
-                        error: 'Invalid request, Please try again!',
+                    callback(405, {
+                        error: 'Authentication failed',
                     });
                 }
             });
@@ -177,31 +192,42 @@ handler._users.put = (requestProperties, callback) => {
     }
 };
 
-handler._users.delete = (requestProperties, callback) => {
-    const phone = typeof requestProperties.queryStringObj.phone === 'string' && requestProperties.queryStringObj.phone.trim().length === 11
-        ? requestProperties.queryStringObj.phone
-        : false;
+handler.check.delete = (requestProperties, callback) => {
+    const qurObj = requestProperties.queryStringObj;
+    const { headers } = requestProperties;
+    const phone =
+        typeof qurObj.phone === 'string' && qurObj.phone.trim().length === 11
+            ? qurObj.phone
+            : false;
 
     if (phone) {
         // look for user
-        data.read('users', phone, (err, hellouser) => {
-            const user = { ...parseJson(hellouser) };
+        tokenHandler.token.verify(headers.token, phone, (tokenId) => {
+            if (tokenId) {
+                data.read('users', phone, (err, hellouser) => {
+                    const user = { ...parseJson(hellouser) };
 
-            if (!err && user) {
-                data.delete('users', phone, (err2) => {
-                    if (err2) {
-                        callback(500, {
-                            error: 'server side problem',
+                    if (!err && user) {
+                        data.delete('users', phone, (err2) => {
+                            if (err2) {
+                                callback(500, {
+                                    error: 'server side problem',
+                                });
+                            } else {
+                                callback(200, {
+                                    error: 'Deleted succesfully',
+                                });
+                            }
                         });
                     } else {
-                        callback(200, {
-                            error: 'Deleted succesfully',
+                        callback(404, {
+                            error: 'user not found!',
                         });
                     }
                 });
             } else {
-                callback(404, {
-                    error: 'user not found!',
+                callback(405, {
+                    error: 'Authentication failed',
                 });
             }
         });

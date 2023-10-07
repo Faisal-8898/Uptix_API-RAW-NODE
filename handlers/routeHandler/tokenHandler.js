@@ -24,6 +24,7 @@ handler.tokenHandler = (requestProperties, callback) => {
         callback(405);
     }
 };
+
 handler.token.post = (requestProperties, callback) => {
     const { body } = requestProperties;
     const phone =        typeof body.phone === 'string' && body.phone.trim().length === 11 ? body.phone : false;
@@ -155,5 +156,21 @@ handler.token.delete = (requestProperties, callback) => {
         });
     }
 };
+
+handler.token.verify = (id, phone, callback) => {
+  
+    data.read('tokens', id, (err, tokenData) => {
+
+        if (!err && tokenData) {
+            if (parseJson(tokenData).phone === phone && parseJson(tokenData).expires > Date.now()) {
+                callback(true);
+            } else {
+                callback(false);
+            }
+        } else {
+            callback(false);
+        }
+    });
+}; 
 
 module.exports = handler;
