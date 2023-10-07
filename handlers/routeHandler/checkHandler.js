@@ -9,8 +9,8 @@
 
 // dependencies
 const data = require('../../lib/data');
-const { hash, parseJson } = require('../../helpers/utilities');
-const tokenHandler = require('./tokenHandler');
+const { maxChecks } = require('../../helpers/environments');
+const { createRandomString } = require('../../helpers/utilities');
 
 // MODULE SCAFFOLDING
 const handler = {};
@@ -58,9 +58,59 @@ handler.check.post = (requestProperties, callback) => {
 
     if (protocol && url && method && successCodes && timeoutSeconds) {
         const { headers } = requestProperties;
+        const token = typeof headers.token === 'string' ? headers.token : false;
+
+        // lookup the user phone number using the token
+
+        data.read('token', token, (err1, tokenData) => {
+            if (!err1 && tokenData) {
+                const userPhone = parseJson(tokenData).phone;
+
+                data.read('users', userPhone, (err2, userData) => {
+                    if (!err2 && userData) {
+                        tokenHandler.token.verify(token, userPhone, (tokenIsvalid) => {
+                            if (tokenIsvalid) {
+                                const userObj = parseJson(userData);
+                                const userChecks = typeof(userObj.checks) === 'object' && userObj.checks instanceof Array ? userObj.checks : [];
+                                if (userChecks.length < maxChecks) {
+                                    const checkId = createRandomString(20);
+                                    const checkObj = {
+                                        id: checkId,
+                                        userPhone,
+                                        protocol,
+                                        url,
+                                        method,
+                                        successCodes,
+                                        timeoutSeconds,
+                                    };
+
+                                    data.create('checks', checkId, checkObj ,(err3))
+                                } else{
+                                    callback(403, {
+                                        error: 'User has already reached max check limit!',
+                                    });
+                                }
+                            } else {
+                                callback(403, {
+                                    error: 'Authentication problem',
+                                });
+                            }
+                        });
+                    } else {
+                        callback(403, {
+                            error: 'Authenticaton problem',
+                        });
+                    }
+                });
+            } else {
+                callback(403, {
+                    error: 'Authenticaton problem',
+                });
+            }
+        });
     } else {
         callback(400, {
-            error: 'You have a problem in your request',
+            error: 'Some field is empty',
         });
     }
 };
