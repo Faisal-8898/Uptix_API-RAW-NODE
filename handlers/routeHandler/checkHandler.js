@@ -10,7 +10,7 @@
 // dependencies
 const data = require('../../lib/data');
 const { maxChecks } = require('../../helpers/environments');
-const { createRandomString } = require('../../helpers/utilities');
+const { createRandomString, parseJson, tokenHandler } = require('../../helpers/utilities');
 
 // MODULE SCAFFOLDING
 const handler = {};
@@ -61,8 +61,7 @@ handler.check.post = (requestProperties, callback) => {
         const token = typeof headers.token === 'string' ? headers.token : false;
 
         // lookup the user phone number using the token
-
-        data.read('token', token, (err1, tokenData) => {
+        data.read('tokens', token, (err1, tokenData) => {
             if (!err1 && tokenData) {
                 const userPhone = parseJson(tokenData).phone;
 
@@ -71,7 +70,8 @@ handler.check.post = (requestProperties, callback) => {
                         tokenHandler.token.verify(token, userPhone, (tokenIsvalid) => {
                             if (tokenIsvalid) {
                                 const userObj = parseJson(userData);
-                                const userChecks = typeof(userObj.checks) === 'object' && userObj.checks instanceof Array ? userObj.checks : [];
+                                const userChecks = typeof userObj.checks === 'object' &&
+                                userObj.checks instanceof Array ? userObj.checks : [];
                                 if (userChecks.length < maxChecks) {
                                     const checkId = createRandomString(20);
                                     const checkObj = {
@@ -84,8 +84,20 @@ handler.check.post = (requestProperties, callback) => {
                                         timeoutSeconds,
                                     };
 
-                                    data.create('checks', checkId, checkObj ,(err3))
-                                } else{
+                                    data.create('checks', checkId, checkObj, (err3) => {
+                                        if (!err3) {
+                                            userObj.checks = userChecks;
+                                            userObj.checks.push(checkId);
+
+                                            //save the modified new user data
+                                            data.update
+                                        } else {
+                                            callback(500, {
+                                                error: 'There is a problem in server side',
+                                            });
+                                        }
+                                    });
+                                } else {
                                     callback(403, {
                                         error: 'User has already reached max check limit!',
                                     });
