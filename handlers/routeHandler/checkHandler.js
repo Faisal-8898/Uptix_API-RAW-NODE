@@ -10,7 +10,8 @@
 // dependencies
 const data = require('../../lib/data');
 const { maxChecks } = require('../../helpers/environments');
-const { createRandomString, parseJson, tokenHandler } = require('../../helpers/utilities');
+const { createRandomString, parseJson } = require('../../helpers/utilities');
+const tokenHandler = require('./tokenHandler');
 
 // MODULE SCAFFOLDING
 const handler = {};
@@ -39,7 +40,7 @@ handler.check.post = (requestProperties, callback) => {
 
     const method =
         typeof body.method === 'string'
-        && ['get', 'post', 'put', 'delete'].indexOf(body.method) > -1
+        && ['GET', 'POST', 'PUT', 'DELETE'].indexOf(body.method) > -1
             ? body.method
             : false;
 
@@ -70,8 +71,10 @@ handler.check.post = (requestProperties, callback) => {
                         tokenHandler.token.verify(token, userPhone, (tokenIsvalid) => {
                             if (tokenIsvalid) {
                                 const userObj = parseJson(userData);
-                                const userChecks = typeof userObj.checks === 'object' &&
-                                userObj.checks instanceof Array ? userObj.checks : [];
+                                const userChecks =                                    typeof userObj.checks === 'object' &&
+                                    userObj.checks instanceof Array
+                                        ? userObj.checks
+                                        : [];
                                 if (userChecks.length < maxChecks) {
                                     const checkId = createRandomString(20);
                                     const checkObj = {
@@ -89,8 +92,16 @@ handler.check.post = (requestProperties, callback) => {
                                             userObj.checks = userChecks;
                                             userObj.checks.push(checkId);
 
-                                            //save the modified new user data
-                                            data.update
+                                            // save the modified new user data
+                                            data.update('users', userPhone, userObj, (err4) => {
+                                                if (!err4) {
+                                                    callback(200, checkObj);
+                                                } else {
+                                                    callback(500, {
+                                                        error: 'there is a problem in server side',
+                                                    });
+                                                }
+                                            });
                                         } else {
                                             callback(500, {
                                                 error: 'There is a problem in server side',
@@ -116,7 +127,7 @@ handler.check.post = (requestProperties, callback) => {
                 });
             } else {
                 callback(403, {
-                    error: 'Authenticaton problem',
+                    error: 'Authenticaton problem token not found!',
                 });
             }
         });
@@ -127,7 +138,38 @@ handler.check.post = (requestProperties, callback) => {
     }
 };
 
-handler.check.get = (requestProperties, callback) => {};
+handler.check.get = (requestProperties, callback) => {
+    const qobj = requestProperties.queryStringObj;
+    const id = typeof qobj.id === 'string' && qobj.id.trim().length > 0 ? qobj.id : false;
+
+    if (id) {
+        data.read('checks', id, (err, checkData) => {
+            if (!err && checkData) {
+                const { headers } = requestProperties;
+                const token = typeof headers.token === 'string' ? headers.token : false;
+
+                tokenHandler.token.verify(token, parseJson(checkData).userPhone, (tokenIsvalid) => {
+                    if (tokenIsvalid) {
+                        callback(200, parseJson(checkData));
+                    }
+                    else {
+                        callback(403, {
+                            error: 'Authenticaton problem token not found!',
+                        });
+                    }
+                });
+            } else {
+                callback(500, {
+                    error: 'Server side problem',
+                });
+            }
+        });
+    } else {
+        callback(400, {
+            error: 'You have a problem in your request',
+        });
+    }
+};
 
 handler.check.put = (requestProperties, callback) => {};
 
