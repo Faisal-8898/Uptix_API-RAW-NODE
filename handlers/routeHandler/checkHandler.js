@@ -1,9 +1,8 @@
-/* eslint-disable no-underscore-dangle */
 /*
- * Title: User Handler
- * Description: Handler route for handle user related routes
+ * Title: Check Handler
+ * Description: Handles all checks that client have or need to update
  * Author: Faisal Ahmed
- * Date: 29/07/2023
+ * Date: 10/10/2023
  *
  */
 
@@ -31,29 +30,21 @@ handler.checkHandler = (requestProperties, callback) => {
 handler.check.post = (requestProperties, callback) => {
     const { body } = requestProperties;
 
-    const protocol =
-        typeof body.protocol === 'string' && ['http', 'https'].indexOf(body.protocol) > -1
+    const protocol =        typeof body.protocol === 'string' && ['http', 'https'].indexOf(body.protocol) > -1
             ? body.protocol
             : false;
 
     const url = typeof body.url === 'string' && body.url.trim().length > 0 ? body.url : false;
 
-    const method =
-        typeof body.method === 'string'
-        && ['GET', 'POST', 'PUT', 'DELETE'].indexOf(body.method) > -1
+    const method =        typeof body.method === 'string' && ['GET', 'POST', 'PUT', 'DELETE'].indexOf(body.method) > -1
             ? body.method
             : false;
 
-    const successCodes =
-        typeof body.successCodes === 'object' && body.successCodes instanceof Array
+    const successCodes =        typeof body.successCodes === 'object' && body.successCodes instanceof Array
             ? body.successCodes
             : false;
 
-    const timeoutSeconds =
-        typeof body.timeoutSeconds === 'number'
-        && body.timeoutSeconds % 1 === 0
-        && body.timeoutSeconds >= 1
-        && body.timeoutSeconds <= 5
+            const timeoutSeconds = typeof body.timeoutSeconds === 'number'&& body.timeoutSeconds % 1 === 0 && body.timeoutSeconds >= 1 && body.timeoutSeconds <= 5
             ? body.timeoutSeconds
             : false;
 
@@ -71,9 +62,9 @@ handler.check.post = (requestProperties, callback) => {
                         tokenHandler.token.verify(token, userPhone, (tokenIsvalid) => {
                             if (tokenIsvalid) {
                                 const userObj = parseJson(userData);
-                                const userChecks =                                    typeof userObj.checks === 'object' &&
-                                    userObj.checks instanceof Array
-                                        ? userObj.checks
+                                const uchek = userObj.checks;
+                                const userChecks =                                    typeof uchek === 'object' && uchek instanceof Array
+                                        ? uchek
                                         : [];
                                 if (userChecks.length < maxChecks) {
                                     const checkId = createRandomString(20);
@@ -151,8 +142,7 @@ handler.check.get = (requestProperties, callback) => {
                 tokenHandler.token.verify(token, parseJson(checkData).userPhone, (tokenIsvalid) => {
                     if (tokenIsvalid) {
                         callback(200, parseJson(checkData));
-                    }
-                    else {
+                    } else {
                         callback(403, {
                             error: 'Authenticaton problem token not found!',
                         });
@@ -171,8 +161,165 @@ handler.check.get = (requestProperties, callback) => {
     }
 };
 
-handler.check.put = (requestProperties, callback) => {};
+handler.check.put = (requestProperties, callback) => {
+    const { body } = requestProperties;
+    const id = typeof body.id === 'string' && body.id.trim().length > 0 ? body.id : false;
 
-handler.check.delete = (requestProperties, callback) => {};
+    const protocol =        typeof body.protocol === 'string' && ['http', 'https'].indexOf(body.protocol) > -1
+            ? body.protocol
+            : false;
+
+    const url = typeof body.url === 'string' && body.url.trim().length > 0 ? body.url : false;
+
+    const method =        typeof body.method === 'string' && [('GET', 'POST', 'PUT', 'DELETE')].indexOf(body.method) > -1
+            ? body.method
+            : false;
+
+    const successCodes =        typeof body.successCodes === 'object' && body.successCodes instanceof Array
+            ? body.successCodes
+            : false;
+
+    const timeoutSeconds = typeof body.timeoutSeconds === 'number'&& body.timeoutSeconds % 1 === 0 && body.timeoutSeconds >= 1 && body.timeoutSeconds <= 5
+        ? body.timeoutSeconds
+        : false;
+    if (id) {
+        if (protocol || url || method || successCodes || timeoutSeconds) {
+            data.read('checks', id, (err1, checkData) => {
+                if (!err1 && checkData) {
+                    const checkObj = parseJson(checkData);
+                    const { headers } = requestProperties;
+                    const token = typeof headers.token === 'string' ? headers.token : false;
+
+                    tokenHandler.token.verify(token, checkObj.userPhone, (tokenIsvalid) => {
+                        if (tokenIsvalid) {
+                            if (protocol) {
+                                checkObj.protocol = protocol;
+                            }
+                            if (url) {
+                                checkObj.url = url;
+                            }
+                            if (method) {
+                                checkObj.method = method;
+                            }
+                            if (successCodes) {
+                                checkObj.successCodes = successCodes;
+                            }
+                            if (timeoutSeconds) {
+                                checkObj.timeoutSeconds = timeoutSeconds;
+                            } else {
+                                // update the store object
+                                data.update('checks', id, checkObj, (err3) => {
+                                    if (!err3) {
+                                        callback(200);
+                                    } else {
+                                        callback(500, {
+                                            error: 'there is a server side problem!',
+                                        });
+                                    }
+                                });
+                            }
+                        } else {
+                            callback(403, {
+                                error: 'Authenticaton problem token not found!',
+                            });
+                        }
+                    });
+                    callback(500, {
+                        error: 'there is a server side problem!',
+                    });
+                }
+            });
+        } else {
+            callback(405, {
+                error: 'Atleast one field need to update!',
+            });
+        }
+    } else {
+        callback(400, {
+            error: 'You have problem in your req!',
+        });
+    }
+};
+
+handler.check.delete = (requestProperties, callback) => {
+    const qobj = requestProperties.queryStringObj;
+    const id = typeof qobj.id === 'string' && qobj.id.trim().length > 0 ? qobj.id : false;
+
+    if (id) {
+        data.read('checks', id, (err, checkData) => {
+            if (!err && checkData) {
+                const { headers } = requestProperties;
+                const token = typeof headers.token === 'string' ? headers.token : false;
+
+                tokenHandler.token.verify(token, parseJson(checkData).userPhone, (tokenIsvalid) => {
+                    if (tokenIsvalid) {
+                        data.delete('checks', id, (err2) => {
+                            if (!err2) {
+                                data.read(
+                                    'users',
+                                    parseJson(checkData).userPhone,
+                                    (err3, userdata) => {
+                                        const userObj = parseJson(userdata);
+                                        if (!err3 && userdata) {
+                                            const uchek = userObj.checks;
+                                            const userChecks =                                                typeof uchek === 'object' && uchek instanceof Array
+                                                    ? uchek
+                                                    : [];
+
+                                            const checkPosition = userChecks.indexOf(id);
+                                            if (checkPosition > -1) {
+                                                userChecks.splice(checkPosition, 1);
+
+                                                userObj.checks = userChecks;
+                                                data.update(
+                                                    'users',
+                                                    userObj.phone,
+                                                    userObj,
+                                                    (err4) => {
+                                                        if (!err4) {
+                                                            callback(200);
+                                                        } else {
+                                                            callback(500, {
+                                                                error: 'there is a server side problem!',
+                                                            });
+                                                        }
+                                                    },
+                                                );
+                                            } else {
+                                                callback(500, {
+                                                    error: 'there is a server side problem!',
+                                                });
+                                            }
+                                        } else {
+                                            callback(500, {
+                                                error: 'Server side problem',
+                                            });
+                                        }
+                                    },
+                                );
+                            } else {
+                                callback(500, {
+                                    error: 'Server side problem',
+                                });
+                            }
+                        });
+                    } else {
+                        callback(403, {
+                            error: 'Authenticaton problem token not found!',
+                        });
+                    }
+                });
+            } else {
+                callback(500, {
+                    error: 'Server side problem',
+                });
+            }
+        });
+    } else {
+        callback(400, {
+            error: 'You have a problem in your request',
+        });
+    }
+};
 
 module.exports = handler;
